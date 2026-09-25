@@ -1,2 +1,592 @@
 const SUPABASE_URL = "https://mgiprmvlxmatrgamyiyd.supabase.co";
 const SUPABASE_KEY = "sb_publishable_1qRysMd9GczOLEX7_2LDcg_SdNWY_63";
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Rutas de Autobuses</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f2f4f7;
+      color: #222;
+    }
+
+    header {
+      background: #0b5ed7;
+      color: white;
+      padding: 25px 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    main {
+      max-width: 1000px;
+      margin: 25px auto;
+      padding: 0 15px;
+    }
+
+    .panel {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-top: 15px;
+      margin-bottom: 5px;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 11px;
+      border: 1px solid #ccc;
+      border-radius: 7px;
+      font-size: 16px;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    button {
+      border: none;
+      border-radius: 7px;
+      padding: 11px 17px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .primary {
+      background: #0b5ed7;
+      color: white;
+      margin-top: 20px;
+    }
+
+    .primary:hover {
+      background: #084db2;
+    }
+
+    .search {
+      margin-bottom: 20px;
+    }
+
+    .ruta {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 15px;
+      background: #fff;
+    }
+
+    .ruta h3 {
+      margin-top: 0;
+      color: #0b5ed7;
+    }
+
+    .ruta p {
+      margin: 7px 0;
+    }
+
+    .mapa {
+      display: inline-block;
+      margin-top: 12px;
+      background: #198754;
+      color: white;
+      text-decoration: none;
+      padding: 10px 14px;
+      border-radius: 7px;
+    }
+
+    .mensaje {
+      padding: 12px;
+      border-radius: 7px;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #842029;
+    }
+
+    .ok {
+      background: #d1e7dd;
+      color: #0f5132;
+    }
+
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 23px;
+      }
+
+      .panel {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>🚌 Rutas de Autobuses</h1>
+</header>
+
+<main>
+
+  <section class="panel">
+
+    <h2>Añadir una ruta</h2>
+
+    <div id="mensaje" class="mensaje"></div>
+
+    <form id="formularioRuta">
+
+      <label for="linea">Número / línea</label>
+      <input
+        type="text"
+        id="linea"
+        placeholder="Ejemplo: 123"
+        required
+      >
+
+      <label for="origen">Origen</label>
+      <input
+        type="text"
+        id="origen"
+        placeholder="Ejemplo: Barbate"
+        required
+      >
+
+      <label for="destino">Destino</label>
+      <input
+        type="text"
+        id="destino"
+        placeholder="Ejemplo: Cádiz"
+        required
+      >
+
+      <label for="fecha">Fecha</label>
+      <input
+        type="date"
+        id="fecha"
+      >
+
+      <label for="hora_salida">Hora de salida</label>
+      <input
+        type="time"
+        id="hora_salida"
+      >
+
+      <label for="hora_llegada">Hora de llegada</label>
+      <input
+        type="time"
+        id="hora_llegada"
+      >
+
+      <label for="google_maps">Enlace de Google Maps</label>
+      <input
+        type="url"
+        id="google_maps"
+        placeholder="Pega aquí el enlace de Google Maps"
+      >
+
+      <label for="observaciones">Observaciones</label>
+      <textarea
+        id="observaciones"
+        placeholder="Información adicional de la ruta..."
+      ></textarea>
+
+      <button class="primary" type="submit">
+        💾 Guardar ruta
+      </button>
+
+    </form>
+
+  </section>
+
+
+  <section class="panel">
+
+    <h2>Rutas guardadas</h2>
+
+    <input
+      class="search"
+      type="search"
+      id="buscador"
+      placeholder="🔎 Buscar por línea, origen o destino..."
+    >
+
+    <div id="listaRutas">
+      Cargando rutas...
+    </div>
+
+  </section>
+
+</main>
+
+
+<script>
+
+  // ==================================================
+  // CONFIGURACIÓN DE SUPABASE
+  // ==================================================
+
+  const SUPABASE_URL =
+    "https://mgiprmvlxmatrgamyiyd.supabase.co";
+
+  const SUPABASE_KEY =
+    "sb_publishable_1qRysMd9GczOLEX7_2LDcg_SdNWY_63";
+
+
+  // ==================================================
+  // FUNCIONES
+  // ==================================================
+
+  async function obtenerRutas() {
+
+    const respuesta = await fetch(
+      `${SUPABASE_URL}/rest/v1/rutas?select=*&order=creado_en.desc`,
+      {
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`
+        }
+      }
+    );
+
+    if (!respuesta.ok) {
+
+      throw new Error(
+        "No se pudieron cargar las rutas."
+      );
+
+    }
+
+    return await respuesta.json();
+  }
+
+
+  function mostrarRutas(rutas) {
+
+    const contenedor =
+      document.getElementById("listaRutas");
+
+    if (rutas.length === 0) {
+
+      contenedor.innerHTML =
+        "<p>No hay rutas guardadas todavía.</p>";
+
+      return;
+    }
+
+    contenedor.innerHTML = "";
+
+    rutas.forEach(ruta => {
+
+      const elemento =
+        document.createElement("div");
+
+      elemento.className = "ruta";
+
+      elemento.innerHTML = `
+
+        <h3>🚌 Línea ${escapeHTML(ruta.linea)}</h3>
+
+        <p>
+          <strong>📍 Recorrido:</strong>
+          ${escapeHTML(ruta.origen)}
+          →
+          ${escapeHTML(ruta.destino)}
+        </p>
+
+        ${
+          ruta.fecha
+          ? `<p><strong>📅 Fecha:</strong>
+             ${escapeHTML(ruta.fecha)}</p>`
+          : ""
+        }
+
+        ${
+          ruta.hora_salida
+          ? `<p><strong>🕐 Salida:</strong>
+             ${escapeHTML(ruta.hora_salida)}</p>`
+          : ""
+        }
+
+        ${
+          ruta.hora_llegada
+          ? `<p><strong>🏁 Llegada:</strong>
+             ${escapeHTML(ruta.hora_llegada)}</p>`
+          : ""
+        }
+
+        ${
+          ruta.observaciones
+          ? `<p><strong>📝 Observaciones:</strong><br>
+             ${escapeHTML(ruta.observaciones)}</p>`
+          : ""
+        }
+
+        ${
+          ruta.google_maps
+          ? `<a
+               class="mapa"
+               href="${escapeAttribute(ruta.google_maps)}"
+               target="_blank"
+               rel="noopener noreferrer">
+               🗺️ Ver ruta en Google Maps
+             </a>`
+          : ""
+        }
+
+      `;
+
+      contenedor.appendChild(elemento);
+
+    });
+
+  }
+
+
+  async function cargarRutas() {
+
+    try {
+
+      const rutas = await obtenerRutas();
+
+      mostrarRutas(rutas);
+
+    } catch (error) {
+
+      mostrarMensaje(
+        "Error al cargar las rutas: " + error.message,
+        true
+      );
+
+    }
+
+  }
+
+
+  document
+    .getElementById("formularioRuta")
+    .addEventListener("submit", async function(event) {
+
+      event.preventDefault();
+
+      const datos = {
+
+        linea:
+          document.getElementById("linea").value.trim(),
+
+        origen:
+          document.getElementById("origen").value.trim(),
+
+        destino:
+          document.getElementById("destino").value.trim(),
+
+        fecha:
+          document.getElementById("fecha").value || null,
+
+        hora_salida:
+          document.getElementById("hora_salida").value || null,
+
+        hora_llegada:
+          document.getElementById("hora_llegada").value || null,
+
+        google_maps:
+          document.getElementById("google_maps").value.trim() || null,
+
+        observaciones:
+          document.getElementById("observaciones").value.trim() || null
+
+      };
+
+
+      try {
+
+        const respuesta = await fetch(
+          `${SUPABASE_URL}/rest/v1/rutas`,
+          {
+
+            method: "POST",
+
+            headers: {
+
+              "apikey": SUPABASE_KEY,
+
+              "Authorization":
+                `Bearer ${SUPABASE_KEY}`,
+
+              "Content-Type":
+                "application/json",
+
+              "Prefer":
+                "return=minimal"
+
+            },
+
+            body: JSON.stringify(datos)
+
+          }
+        );
+
+
+        if (!respuesta.ok) {
+
+          const error =
+            await respuesta.text();
+
+          throw new Error(error);
+
+        }
+
+
+        mostrarMensaje(
+          "✅ Ruta guardada correctamente.",
+          false
+        );
+
+
+        document
+          .getElementById("formularioRuta")
+          .reset();
+
+
+        cargarRutas();
+
+
+      } catch (error) {
+
+        mostrarMensaje(
+          "❌ No se pudo guardar la ruta. " +
+          error.message,
+          true
+        );
+
+      }
+
+    });
+
+
+  document
+    .getElementById("buscador")
+    .addEventListener("input", async function() {
+
+      const texto =
+        this.value.toLowerCase().trim();
+
+      try {
+
+        const rutas = await obtenerRutas();
+
+        const filtradas =
+          rutas.filter(ruta =>
+
+            (ruta.linea || "")
+              .toLowerCase()
+              .includes(texto)
+
+            ||
+
+            (ruta.origen || "")
+              .toLowerCase()
+              .includes(texto)
+
+            ||
+
+            (ruta.destino || "")
+              .toLowerCase()
+              .includes(texto)
+
+          );
+
+        mostrarRutas(filtradas);
+
+      } catch (error) {
+
+        mostrarMensaje(
+          "No se pudieron buscar las rutas.",
+          true
+        );
+
+      }
+
+    });
+
+
+  function mostrarMensaje(texto, esError) {
+
+    const elemento =
+      document.getElementById("mensaje");
+
+    elemento.textContent = texto;
+
+    elemento.className =
+      "mensaje " + (esError ? "error" : "ok");
+
+    elemento.style.display = "block";
+
+    setTimeout(() => {
+
+      elemento.style.display = "none";
+
+    }, 5000);
+
+  }
+
+
+  function escapeHTML(texto) {
+
+    const div =
+      document.createElement("div");
+
+    div.textContent = texto;
+
+    return div.innerHTML;
+
+  }
+
+
+  function escapeAttribute(texto) {
+
+    return String(texto)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+  }
+
+
+  // Cargar rutas al abrir la página
+  cargarRutas();
+
+</script>
+
+</body>
+</html>
