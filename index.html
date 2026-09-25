@@ -249,340 +249,349 @@
 
 <script>
 
-  // ==================================================
-  // CONFIGURACIÓN DE SUPABASE
-  // ==================================================
+const SUPABASE_URL = "https://mgiprmvlxmatrgamyiyd.supabase.co";
 
-  const SUPABASE_URL =
-    "https://mgiprmvlxmatrgamyiyd.supabase.co";
-
-  const SUPABASE_KEY =
-    "sb_publishable_1qRysMd9GczOLEX7_2LDcg_SdNWY_63";
+const SUPABASE_KEY = "sb_publishable_1qRysMd9GczOLEX7_2LDcg_SdNWY_63";
 
 
-  // ==================================================
-  // FUNCIONES
-  // ==================================================
+// ============================================
+// CARGAR RUTAS DESDE SUPABASE
+// ============================================
 
-  async function obtenerRutas() {
+async function obtenerRutas() {
 
     const respuesta = await fetch(
-      `${SUPABASE_URL}/rest/v1/rutas?select=*&order=creado_en.desc`,
-      {
-        headers: {
-          "apikey": SUPABASE_KEY,
-          "Authorization": `Bearer ${SUPABASE_KEY}`
+        `${SUPABASE_URL}/rest/v1/"Rutas"?select=*`,
+        {
+            headers: {
+                "apikey": SUPABASE_KEY,
+                "Authorization": `Bearer ${SUPABASE_KEY}`
+            }
         }
-      }
     );
 
     if (!respuesta.ok) {
-
-      throw new Error(
-        "No se pudieron cargar las rutas."
-      );
-
+        const error = await respuesta.text();
+        throw new Error(error);
     }
 
     return await respuesta.json();
-  }
+}
 
 
-  function mostrarRutas(rutas) {
+// ============================================
+// MOSTRAR RUTAS
+// ============================================
 
-    const contenedor =
-      document.getElementById("listaRutas");
+function mostrarRutas(rutas) {
+
+    const contenedor = document.getElementById("listaRutas");
 
     if (rutas.length === 0) {
 
-      contenedor.innerHTML =
-        "<p>No hay rutas guardadas todavía.</p>";
+        contenedor.innerHTML =
+            "<p>No hay rutas guardadas todavía.</p>";
 
-      return;
+        return;
     }
 
     contenedor.innerHTML = "";
 
     rutas.forEach(ruta => {
 
-      const elemento =
-        document.createElement("div");
+        const elemento = document.createElement("div");
 
-      elemento.className = "ruta";
+        elemento.className = "ruta";
 
-      elemento.innerHTML = `
+        elemento.innerHTML = `
 
-        <h3>🚌 Línea ${escapeHTML(ruta.linea)}</h3>
+            <h3>
+                🚌 Línea ${escapeHTML(ruta.Linea)}
+            </h3>
 
-        <p>
-          <strong>📍 Recorrido:</strong>
-          ${escapeHTML(ruta.origen)}
-          →
-          ${escapeHTML(ruta.destino)}
-        </p>
+            <p>
+                <strong>📍 Recorrido:</strong>
+                ${escapeHTML(ruta.Origen)}
+                →
+                ${escapeHTML(ruta.Destino)}
+            </p>
 
-        ${
-          ruta.fecha
-          ? `<p><strong>📅 Fecha:</strong>
-             ${escapeHTML(ruta.fecha)}</p>`
-          : ""
-        }
+            ${
+                ruta.Hora_salida
+                ? `
+                <p>
+                    <strong>🕐 Salida:</strong>
+                    ${escapeHTML(ruta.Hora_salida)}
+                </p>
+                `
+                : ""
+            }
 
-        ${
-          ruta.hora_salida
-          ? `<p><strong>🕐 Salida:</strong>
-             ${escapeHTML(ruta.hora_salida)}</p>`
-          : ""
-        }
+            ${
+                ruta.Hora_llegada
+                ? `
+                <p>
+                    <strong>🏁 Llegada:</strong>
+                    ${escapeHTML(ruta.Hora_llegada)}
+                </p>
+                `
+                : ""
+            }
 
-        ${
-          ruta.hora_llegada
-          ? `<p><strong>🏁 Llegada:</strong>
-             ${escapeHTML(ruta.hora_llegada)}</p>`
-          : ""
-        }
+            ${
+                ruta["Google Maps"]
+                ? `
+                <a
+                    class="mapa"
+                    href="${escapeAttribute(ruta["Google Maps"])}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    🗺️ Ver ruta en Google Maps
+                </a>
+                `
+                : ""
+            }
 
-        ${
-          ruta.observaciones
-          ? `<p><strong>📝 Observaciones:</strong><br>
-             ${escapeHTML(ruta.observaciones)}</p>`
-          : ""
-        }
+        `;
 
-        ${
-          ruta.google_maps
-          ? `<a
-               class="mapa"
-               href="${escapeAttribute(ruta.google_maps)}"
-               target="_blank"
-               rel="noopener noreferrer">
-               🗺️ Ver ruta en Google Maps
-             </a>`
-          : ""
-        }
-
-      `;
-
-      contenedor.appendChild(elemento);
+        contenedor.appendChild(elemento);
 
     });
+}
 
-  }
 
+// ============================================
+// CARGAR
+// ============================================
 
-  async function cargarRutas() {
+async function cargarRutas() {
 
     try {
 
-      const rutas = await obtenerRutas();
+        const rutas = await obtenerRutas();
 
-      mostrarRutas(rutas);
+        mostrarRutas(rutas);
 
     } catch (error) {
 
-      mostrarMensaje(
-        "Error al cargar las rutas: " + error.message,
-        true
-      );
+        mostrarMensaje(
+            "❌ Error al cargar las rutas: " + error.message,
+            true
+        );
 
+        console.error(error);
     }
-
-  }
-
-
-  document
-    .getElementById("formularioRuta")
-    .addEventListener("submit", async function(event) {
-
-      event.preventDefault();
-
-      const datos = {
-
-        linea:
-          document.getElementById("linea").value.trim(),
-
-        origen:
-          document.getElementById("origen").value.trim(),
-
-        destino:
-          document.getElementById("destino").value.trim(),
-
-        fecha:
-          document.getElementById("fecha").value || null,
-
-        hora_salida:
-          document.getElementById("hora_salida").value || null,
-
-        hora_llegada:
-          document.getElementById("hora_llegada").value || null,
-
-        google_maps:
-          document.getElementById("google_maps").value.trim() || null,
-
-        observaciones:
-          document.getElementById("observaciones").value.trim() || null
-
-      };
+}
 
 
-      try {
+// ============================================
+// GUARDAR NUEVA RUTA
+// ============================================
+
+document
+.getElementById("formularioRuta")
+.addEventListener("submit", async function(event) {
+
+    event.preventDefault();
+
+    const datos = {
+
+        "Linea":
+            document.getElementById("linea").value.trim(),
+
+        "Origen":
+            document.getElementById("origen").value.trim(),
+
+        "Destino":
+            document.getElementById("destino").value.trim(),
+
+        "Hora_salida":
+            document.getElementById("hora_salida").value || null,
+
+        "Hora_llegada":
+            document.getElementById("hora_llegada").value || null,
+
+        "Google Maps":
+            document.getElementById("google_maps").value.trim() || null
+    };
+
+
+    try {
 
         const respuesta = await fetch(
-          `${SUPABASE_URL}/rest/v1/rutas`,
-          {
+            `${SUPABASE_URL}/rest/v1/"Rutas"`,
 
-            method: "POST",
+            {
+                method: "POST",
 
-            headers: {
+                headers: {
 
-              "apikey": SUPABASE_KEY,
+                    "apikey": SUPABASE_KEY,
 
-              "Authorization":
-                `Bearer ${SUPABASE_KEY}`,
+                    "Authorization":
+                        `Bearer ${SUPABASE_KEY}`,
 
-              "Content-Type":
-                "application/json",
+                    "Content-Type":
+                        "application/json",
 
-              "Prefer":
-                "return=minimal"
+                    "Prefer":
+                        "return=minimal"
+                },
 
-            },
-
-            body: JSON.stringify(datos)
-
-          }
+                body: JSON.stringify(datos)
+            }
         );
 
 
         if (!respuesta.ok) {
 
-          const error =
-            await respuesta.text();
+            const error =
+                await respuesta.text();
 
-          throw new Error(error);
-
+            throw new Error(error);
         }
 
 
         mostrarMensaje(
-          "✅ Ruta guardada correctamente.",
-          false
+            "✅ Ruta guardada correctamente.",
+            false
         );
 
 
         document
-          .getElementById("formularioRuta")
-          .reset();
+        .getElementById("formularioRuta")
+        .reset();
 
 
         cargarRutas();
 
 
-      } catch (error) {
+    } catch (error) {
 
         mostrarMensaje(
-          "❌ No se pudo guardar la ruta. " +
-          error.message,
-          true
+            "❌ No se pudo guardar la ruta. " +
+            error.message,
+            true
         );
 
-      }
+        console.error(error);
+    }
 
-    });
+});
 
 
-  document
-    .getElementById("buscador")
-    .addEventListener("input", async function() {
+// ============================================
+// BUSCADOR
+// ============================================
 
-      const texto =
+document
+.getElementById("buscador")
+.addEventListener("input", async function() {
+
+    const texto =
         this.value.toLowerCase().trim();
 
-      try {
 
-        const rutas = await obtenerRutas();
+    try {
+
+        const rutas =
+            await obtenerRutas();
+
 
         const filtradas =
-          rutas.filter(ruta =>
+            rutas.filter(ruta =>
 
-            (ruta.linea || "")
-              .toLowerCase()
-              .includes(texto)
+                (ruta.Linea || "")
+                .toLowerCase()
+                .includes(texto)
 
-            ||
+                ||
 
-            (ruta.origen || "")
-              .toLowerCase()
-              .includes(texto)
+                (ruta.Origen || "")
+                .toLowerCase()
+                .includes(texto)
 
-            ||
+                ||
 
-            (ruta.destino || "")
-              .toLowerCase()
-              .includes(texto)
+                (ruta.Destino || "")
+                .toLowerCase()
+                .includes(texto)
 
-          );
+            );
+
 
         mostrarRutas(filtradas);
 
-      } catch (error) {
+
+    } catch (error) {
 
         mostrarMensaje(
-          "No se pudieron buscar las rutas.",
-          true
+            "❌ No se pudieron buscar las rutas.",
+            true
         );
+    }
 
-      }
-
-    });
+});
 
 
-  function mostrarMensaje(texto, esError) {
+// ============================================
+// MENSAJES
+// ============================================
+
+function mostrarMensaje(texto, esError) {
 
     const elemento =
-      document.getElementById("mensaje");
+        document.getElementById("mensaje");
 
     elemento.textContent = texto;
 
     elemento.className =
-      "mensaje " + (esError ? "error" : "ok");
+        "mensaje " + (esError ? "error" : "ok");
 
     elemento.style.display = "block";
 
+
     setTimeout(() => {
 
-      elemento.style.display = "none";
+        elemento.style.display = "none";
 
     }, 5000);
 
-  }
+}
 
 
-  function escapeHTML(texto) {
+// ============================================
+// SEGURIDAD HTML
+// ============================================
+
+function escapeHTML(texto) {
 
     const div =
-      document.createElement("div");
+        document.createElement("div");
 
     div.textContent = texto;
 
     return div.innerHTML;
+}
 
-  }
 
-
-  function escapeAttribute(texto) {
+function escapeAttribute(texto) {
 
     return String(texto)
-      .replace(/&/g, "&amp;")
-      .replace(/"/g, "&quot;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
 
-  }
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
 
 
-  // Cargar rutas al abrir la página
-  cargarRutas();
+// ============================================
+// INICIAR
+// ============================================
+
+cargarRutas();
 
 </script>
 
